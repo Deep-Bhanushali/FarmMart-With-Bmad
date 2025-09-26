@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: farmmarket-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/farmmart
+      - JWT_SECRET=change-me
+      - STRIPE_SECRET_KEY=your_stripe_secret_key_here
+      - STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret_here
+      - NEXT_PUBLIC_API_URL=https://yourdomain.com
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - farmmarket-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: farmmarket-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: farmmart
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - farmmarket-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: farmmarket-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - farmmarket-network
+
+volumes:
+  postgres-data:
+
+networks:
+  farmmarket-network:
+    driver: bridge
